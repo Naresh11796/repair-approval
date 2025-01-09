@@ -3,56 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Memento Database - Repair Order</title>
+    <title>Repair Order Management</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; }
-        .container { max-width: 600px; margin: auto; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; }
-        input, button { width: 100%; padding: 10px; }
-        .message { margin-top: 15px; padding: 10px; border-radius: 5px; display: none; }
-        .success { background-color: #d4edda; color: #155724; }
-        .error { background-color: #f8d7da; color: #721c24; }
+        .container { max-width: 500px; margin: auto; text-align: center; }
+        input, button { margin: 10px; padding: 10px; width: 80%; }
+        button { background-color: #4CAF50; color: white; border: none; cursor: pointer; }
+        button:hover { background-color: #45a049; }
+        .output { margin-top: 20px; }
+        label { font-weight: bold; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Repair Order Management</h1>
-        <div class="form-group">
-            <label for="roNumberInput">Enter RO NUMBER:</label>
-            <input type="text" id="roNumberInput" placeholder="e.g., RO12345">
-        </div>
+        <label for="roNumberInput">Enter RO NUMBER:</label>
+        <input type="text" id="roNumberInput" placeholder="Enter Repair Order Number">
         <button id="fetchButton">Fetch Data</button>
-        <div class="form-group">
-            <label for="statusField">Status:</label>
-            <input type="text" id="statusField" readonly>
+        <div class="output">
+            <p><strong>Status:</strong> <input type="text" id="statusField" readonly></p>
+            <p><strong>Serial Number:</strong> <input type="text" id="serialNumberField" readonly></p>
         </div>
-        <div class="form-group">
-            <label for="serialNumberField">Serial Number:</label>
-            <input type="text" id="serialNumberField" readonly>
-        </div>
-        <div class="form-group">
-            <button id="saveButton">Save Changes</button>
-        </div>
-        <div class="message success" id="successMessage"></div>
-        <div class="message error" id="errorMessage"></div>
+        <button id="saveButton">Save Data</button>
+        <p id="resultMessage"></p>
     </div>
-
     <script>
-        const apiUrl = "https://mementodb.com/s/"; // Replace with your base API URL
-        const apiKey = "Bearer yV3UvxtCUWHdfuhwDsjePfeFprdbVZ"; // Replace with your API Key
-        const libraryId = "yMvvJiDoE"; // Replace with your library ID
+        const apiUrl = "https://mementodb.com/s/";
+        const apiKey = "Bearer yV3UvxtCUWHdfuhwDsjePfeFprdbVZ";
+        const libraryId = "yMvvJiDoE";
 
-        // Fetch Button
         document.getElementById('fetchButton').addEventListener('click', () => {
             const roNumber = document.getElementById('roNumberInput').value.trim();
             if (!roNumber) {
-                showError('Please enter an RO NUMBER.');
+                alert("Please enter an RO NUMBER.");
                 return;
             }
 
-            // Fetch data from Memento Database
-            fetch(`${apiUrl}libraries/${libraryId}/entries?filter={"RO NUMBER": "${roNumber}"}`, {
+            const endpoint = `${apiUrl}libraries/${libraryId}/entries?filter=${encodeURIComponent(`{"RO NUMBER": "${roNumber}"}`)}`;
+            fetch(endpoint, {
                 method: 'GET',
                 headers: {
                     'Authorization': apiKey,
@@ -60,38 +48,38 @@
                 }
             })
             .then(response => {
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP status ${response.status}`);
+                }
                 return response.json();
             })
             .then(data => {
-                if (data.entries.length === 0) {
-                    showError('No data found for the given RO NUMBER.');
-                    return;
+                if (data.entries && data.entries.length > 0) {
+                    const entry = data.entries[0];
+                    document.getElementById('statusField').value = entry['STATUS'] || 'N/A';
+                    document.getElementById('serialNumberField').value = entry['SERIAL NUMBER'] || 'N/A';
+                } else {
+                    alert("No data found for the given RO NUMBER.");
                 }
-
-                const entry = data.entries[0];
-                document.getElementById('statusField').value = entry['STATUS'] || 'N/A';
-                document.getElementById('serialNumberField').value = entry['SERIAL NUMBER'] || 'N/A';
-                showSuccess('Data fetched successfully!');
             })
             .catch(error => {
-                console.error('Error fetching data:', error);
-                showError('Error fetching data. Please try again.');
+                console.error("Fetch error:", error);
+                alert("Error fetching data. Please check the console for details.");
             });
         });
 
-        // Save Button
         document.getElementById('saveButton').addEventListener('click', () => {
             const roNumber = document.getElementById('roNumberInput').value.trim();
             const status = document.getElementById('statusField').value.trim();
             const serialNumber = document.getElementById('serialNumberField').value.trim();
 
-            if (!roNumber) {
-                showError('RO NUMBER is required to save data.');
+            if (!roNumber || !status || !serialNumber) {
+                alert("Please fetch data first and ensure all fields are filled.");
                 return;
             }
 
-            fetch(`${apiUrl}libraries/${libraryId}/entries`, {
+            const endpoint = `${apiUrl}libraries/${libraryId}/entries`;
+            fetch(endpoint, {
                 method: 'POST',
                 headers: {
                     'Authorization': apiKey,
@@ -106,32 +94,17 @@
                 })
             })
             .then(response => {
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                return response.json();
-            })
-            .then(data => {
-                showSuccess('Data saved successfully!');
+                if (response.ok) {
+                    document.getElementById('resultMessage').textContent = "Data saved successfully!";
+                } else {
+                    throw new Error(`HTTP status ${response.status}`);
+                }
             })
             .catch(error => {
-                console.error('Error saving data:', error);
-                showError('Error saving data. Please try again.');
+                console.error("Save error:", error);
+                document.getElementById('resultMessage').textContent = "Error saving data. Please try again.";
             });
         });
-
-        // Utility functions for messages
-        function showError(message) {
-            const errorMessage = document.getElementById('errorMessage');
-            errorMessage.textContent = message;
-            errorMessage.style.display = 'block';
-            document.getElementById('successMessage').style.display = 'none';
-        }
-
-        function showSuccess(message) {
-            const successMessage = document.getElementById('successMessage');
-            successMessage.textContent = message;
-            successMessage.style.display = 'block';
-            document.getElementById('errorMessage').style.display = 'none';
-        }
     </script>
 </body>
 </html>
