@@ -20,21 +20,19 @@
         <div class="message" id="message"></div>
     </div>
     <script>
-        // Extract RO NUMBER from URL
         const urlParams = new URLSearchParams(window.location.search);
         const roNumber = urlParams.get('RONo');
         document.getElementById('details').textContent = `Repair Order Number: ${roNumber}`;
 
-        // Approve Button Logic
         document.getElementById('approveButton').addEventListener('click', () => {
-            fetch('https://<MEMENTO_API_ENDPOINT>', { // Replace with your Memento API URL
+            fetch('https://<MEMENTO_API_ENDPOINT>', { // Replace with your API URL
                 method: 'POST',
                 headers: {
-                    'Authorization': 'Bearer <YOUR_API_KEY>', // Replace with your Memento API Key
+                    'Authorization': 'Bearer <YOUR_API_KEY>', // Replace with your API Key
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    library_id: '<LIBRARY_ID>', // Replace with your library ID
+                    library_id: '<LIBRARY_ID>', // Replace with your Library ID
                     entry: {
                         "RO NUMBER": roNumber,
                         "STATUS": "Approved"
