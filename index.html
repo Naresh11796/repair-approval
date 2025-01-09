@@ -14,34 +14,85 @@
 </head>
 <body>
     <div class="container">
-        <h1>Repair Approval</h1>
-        <p id="details"></p>
-        <button id="approveButton">Approve</button>
+        <h1>Repair Order Information</h1>
+        <label for="roNumber">Enter RO Number:</label>
+        <input type="text" id="roNumber" placeholder="Enter RO Number" />
+        <button id="fetchDataButton">Fetch Data</button>
+        
+        <div id="dataSection" style="display: none;">
+            <h2>Fetched Data</h2>
+            <p><strong>STATUS:</strong> <span id="statusData"></span></p>
+            <p><strong>SERIAL NUMBER:</strong> <span id="serialNumberData"></span></p>
+
+            <label for="newStatus">Update STATUS:</label>
+            <input type="text" id="newStatus" placeholder="Enter new status" />
+            
+            <button id="saveDataButton">Save Data</button>
+        </div>
+        
         <div class="message" id="message"></div>
     </div>
+    
     <script>
-        // Get the RO Number from the URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const roNumber = urlParams.get('RONo');
-        document.getElementById('details').textContent = `Repair Order Number: ${roNumber}`;
-
-        // Approve Button Click Handler
-        document.getElementById('approveButton').addEventListener('click', async () => {
+        // Fetch data from Memento Database when button is clicked
+        document.getElementById('fetchDataButton').addEventListener('click', async () => {
+            const roNumber = document.getElementById('roNumber').value.trim();
+            
+            if (!roNumber) {
+                document.getElementById('message').textContent = 'Please enter a valid RO Number.';
+                return;
+            }
+            
             try {
-                const response = await fetch(`https://mementodb.com/s/yMvvJiDoE?query={"RO NUMBER":"${roNumber}"}`, { // Query using GET
+                const response = await fetch(`https://mementodb.com/s/yMvvJiDoE?query={"RO NUMBER":"${roNumber}"}`, {
                     method: 'GET',
                     headers: {
                         'Authorization': 'Bearer yV3UvxtCUWHdfuhwDsjePfeFprdbVZ', // Your API Key
                         'Content-Type': 'application/json'
                     }
                 });
+                
                 const data = await response.json();
-                console.log(data); // Check the returned data in the console
-
+                
                 if (data.entries && data.entries.length > 0) {
-                    const entryId = data.entries[0].id; // Get the entry ID of the matched record
-                    // Update the STATUS to 'Accepted'
-                    const updateResponse = await fetch(`https://mementodb.com/s/yMvvJiDoE/${entryId}`, { // Update the entry using its ID
+                    const entry = data.entries[0];
+                    document.getElementById('statusData').textContent = entry.STATUS || 'Not available';
+                    document.getElementById('serialNumberData').textContent = entry['SERIAL NUMBER'] || 'Not available';
+                    document.getElementById('dataSection').style.display = 'block';
+                } else {
+                    document.getElementById('message').textContent = 'RO Number not found.';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('message').textContent = 'Error fetching data. Please try again.';
+            }
+        });
+
+        // Save the updated data back to Memento Database
+        document.getElementById('saveDataButton').addEventListener('click', async () => {
+            const roNumber = document.getElementById('roNumber').value.trim();
+            const newStatus = document.getElementById('newStatus').value.trim();
+            
+            if (!newStatus) {
+                document.getElementById('message').textContent = 'Please enter a new status to save.';
+                return;
+            }
+
+            try {
+                const response = await fetch(`https://mementodb.com/s/yMvvJiDoE?query={"RO NUMBER":"${roNumber}"}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': 'Bearer yV3UvxtCUWHdfuhwDsjePfeFprdbVZ',
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (data.entries && data.entries.length > 0) {
+                    const entryId = data.entries[0].id;
+                    
+                    const updateResponse = await fetch(`https://mementodb.com/s/yMvvJiDoE/${entryId}`, {
                         method: 'PUT',
                         headers: {
                             'Authorization': 'Bearer yV3UvxtCUWHdfuhwDsjePfeFprdbVZ',
@@ -49,22 +100,22 @@
                         },
                         body: JSON.stringify({
                             entry: {
-                                "STATUS": "Accepted"
+                                "STATUS": newStatus // Update the STATUS field
                             }
                         })
                     });
 
                     if (updateResponse.ok) {
-                        document.getElementById('message').textContent = 'Repair order approved successfully!';
+                        document.getElementById('message').textContent = 'Repair order status updated successfully!';
                     } else {
-                        throw new Error('Failed to update status. Please try again.');
+                        document.getElementById('message').textContent = 'Failed to save the data. Please try again.';
                     }
                 } else {
-                    throw new Error('RO Number not found in the database.');
+                    document.getElementById('message').textContent = 'RO Number not found.';
                 }
             } catch (error) {
                 console.error('Error:', error);
-                document.getElementById('message').textContent = error.message || 'Error connecting to the database. Please try again.';
+                document.getElementById('message').textContent = 'Error saving data. Please try again.';
             }
         });
     </script>
