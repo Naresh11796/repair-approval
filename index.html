@@ -27,28 +27,48 @@
 
         // Approve Button Click Handler
         document.getElementById('approveButton').addEventListener('click', () => {
-            fetch('https://mementodb.com/s/yMvvJiDoE', { // Your Memento Library URL
+            fetch('https://mementodb.com/s/yMvvJiDoE/search', { // Your Memento Library Search URL
                 method: 'POST',
                 headers: {
                     'Authorization': 'Bearer yV3UvxtCUWHdfuhwDsjePfeFprdbVZ', // Your API Key
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    entry: {
-                        "RO NUMBER": roNumber,  // Match the RO Number
-                        "STATUS": "Approved"   // Update the STATUS field
+                    query: {
+                        "RO NUMBER": roNumber  // Search for the RO NUMBER
                     }
                 })
             })
-            .then(response => {
-                if (response.ok) {
+            .then(response => response.json())
+            .then(data => {
+                if (data.entries && data.entries.length > 0) {
+                    const entryId = data.entries[0].id; // Get the entry ID of the matched record
+                    // Update the STATUS to 'Accepted'
+                    return fetch(`https://mementodb.com/s/yMvvJiDoE/${entryId}`, { // Update the entry using its ID
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': 'Bearer yV3UvxtCUWHdfuhwDsjePfeFprdbVZ',
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            entry: {
+                                "STATUS": "Accepted"
+                            }
+                        })
+                    });
+                } else {
+                    throw new Error('RO Number not found in the database.');
+                }
+            })
+            .then(updateResponse => {
+                if (updateResponse.ok) {
                     document.getElementById('message').textContent = 'Repair order approved successfully!';
                 } else {
-                    document.getElementById('message').textContent = 'Failed to update status. Please try again.';
+                    throw new Error('Failed to update status. Please try again.');
                 }
             })
             .catch(error => {
-                document.getElementById('message').textContent = 'Error connecting to the database. Please try again.';
+                document.getElementById('message').textContent = error.message || 'Error connecting to the database. Please try again.';
             });
         });
     </script>
