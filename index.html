@@ -6,8 +6,8 @@
     <title>Repair Approval</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; }
-        .container { max-width: 600px; margin: auto; }
-        button { padding: 10px 20px; background-color: #4CAF50; color: white; border: none; cursor: pointer; }
+        .container { max-width: 600px; margin: auto; text-align: center; }
+        button { padding: 10px 20px; background-color: #4CAF50; color: white; border: none; cursor: pointer; margin-top: 20px; }
         button:hover { background-color: #45a049; }
         .message { margin-top: 20px; font-size: 1.2em; color: green; }
     </style>
@@ -20,31 +20,35 @@
         <div class="message" id="message"></div>
     </div>
     <script>
+        // Get the RO Number from the URL
         const urlParams = new URLSearchParams(window.location.search);
         const roNumber = urlParams.get('RONo');
         document.getElementById('details').textContent = `Repair Order Number: ${roNumber}`;
 
+        // Approve Button Click Handler
         document.getElementById('approveButton').addEventListener('click', () => {
-            fetch('https://<MEMENTO_API_ENDPOINT>', { // Replace with your API URL
+            fetch('https://mementodb.com/s/yMvvJiDoE', { // Your Memento Library URL
                 method: 'POST',
                 headers: {
-                    'Authorization': 'Bearer <YOUR_API_KEY>', // Replace with your API Key
+                    'Authorization': 'Bearer yV3UvxtCUWHdfuhwDsjePfeFprdbVZ', // Your API Key
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    library_id: '<LIBRARY_ID>', // Replace with your Library ID
                     entry: {
-                        "RO NUMBER": roNumber,
-                        "STATUS": "Approved"
+                        "RO NUMBER": roNumber,  // Match the RO Number
+                        "STATUS": "Approved"   // Update the STATUS field
                     }
                 })
             })
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('message').textContent = 'Repair order approved successfully!';
+            .then(response => {
+                if (response.ok) {
+                    document.getElementById('message').textContent = 'Repair order approved successfully!';
+                } else {
+                    document.getElementById('message').textContent = 'Failed to update status. Please try again.';
+                }
             })
             .catch(error => {
-                document.getElementById('message').textContent = 'Error updating the status. Please try again.';
+                document.getElementById('message').textContent = 'Error connecting to the database. Please try again.';
             });
         });
     </script>
