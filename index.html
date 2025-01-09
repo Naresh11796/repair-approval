@@ -27,17 +27,12 @@
 
         // Approve Button Click Handler
         document.getElementById('approveButton').addEventListener('click', () => {
-            fetch('https://mementodb.com/s/yMvvJiDoE/search', { // Your Memento Library Search URL
-                method: 'POST',
+            fetch(`https://mementodb.com/s/yMvvJiDoE?query={"RO NUMBER":"${roNumber}"}`, { // Query using GET
+                method: 'GET',
                 headers: {
                     'Authorization': 'Bearer yV3UvxtCUWHdfuhwDsjePfeFprdbVZ', // Your API Key
                     'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    query: {
-                        "RO NUMBER": roNumber  // Search for the RO NUMBER
-                    }
-                })
+                }
             })
             .then(response => response.json())
             .then(data => {
