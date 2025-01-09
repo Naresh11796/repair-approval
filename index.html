@@ -3,95 +3,106 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Memento API Integration</title>
+    <title>Repair Order Management</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; }
-        .container { max-width: 600px; margin: auto; text-align: center; }
-        input, button { padding: 10px; margin: 10px; width: 80%; }
+        .container { max-width: 500px; margin: auto; text-align: center; }
+        input, button { margin: 10px; padding: 10px; width: 80%; }
         button { background-color: #4CAF50; color: white; border: none; cursor: pointer; }
         button:hover { background-color: #45a049; }
-        .message { margin-top: 20px; font-size: 1em; color: red; }
+        .output { margin-top: 20px; }
+        label { font-weight: bold; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Memento API Integration</h1>
-        <input type="text" id="roNumber" placeholder="Enter RO Number">
+        <h1>Repair Order Management</h1>
+        <label for="roNumberInput">Enter RO NUMBER:</label>
+        <input type="text" id="roNumberInput" placeholder="Enter Repair Order Number">
         <button id="fetchButton">Fetch Data</button>
-        <p id="fetchResult"></p>
+        <div class="output">
+            <p><strong>Status:</strong> <input type="text" id="statusField" readonly></p>
+            <p><strong>Serial Number:</strong> <input type="text" id="serialNumberField" readonly></p>
+        </div>
         <button id="saveButton">Save Data</button>
-        <p class="message" id="message"></p>
+        <p id="resultMessage"></p>
     </div>
     <script>
-        const apiKey = 'yV3UvxtCUWHdfuhwDsjePfeFprdbVZ';
-        const libraryId = 'yMvvJiDoE';
-        const baseUrl = 'https://api.mementodatabase.com/v1/';
+        const apiUrl = "https://api.mementodatabase.com/v1/";
+        const apiKey = "Bearer yV3UvxtCUWHdfuhwDsjePfeFprdbVZ";
+        const libraryId = "yMvvJiDoE";
 
-        // Fetch data from Memento
         document.getElementById('fetchButton').addEventListener('click', () => {
-            const roNumber = document.getElementById('roNumber').value.trim();
+            const roNumber = document.getElementById('roNumberInput').value.trim();
             if (!roNumber) {
-                document.getElementById('message').textContent = 'Please enter an RO Number.';
+                alert("Please enter an RO NUMBER.");
                 return;
             }
-            fetch(`${baseUrl}libraries/${libraryId}/entries`, {
+
+            const endpoint = `${apiUrl}libraries/${libraryId}/entries?filter=${encodeURIComponent(`{"RO NUMBER": "${roNumber}"}`)}`;
+            fetch(endpoint, {
                 method: 'GET',
                 headers: {
-                    'Authorization': `Bearer ${apiKey}`
+                    'Authorization': apiKey,
+                    'Content-Type': 'application/json'
                 }
             })
             .then(response => {
                 if (!response.ok) {
-                    throw new Error(`Error: ${response.status}`);
+                    throw new Error(`HTTP status ${response.status}`);
                 }
                 return response.json();
             })
             .then(data => {
-                const entry = data.entries.find(e => e['RO NUMBER'] === roNumber);
-                if (entry) {
-                    document.getElementById('fetchResult').textContent = `STATUS: ${entry.STATUS}, SERIAL NUMBER: ${entry['SERIAL NUMBER']}`;
-                    document.getElementById('message').textContent = '';
+                if (data.entries && data.entries.length > 0) {
+                    const entry = data.entries[0];
+                    document.getElementById('statusField').value = entry['STATUS'] || 'N/A';
+                    document.getElementById('serialNumberField').value = entry['SERIAL NUMBER'] || 'N/A';
                 } else {
-                    document.getElementById('fetchResult').textContent = '';
-                    document.getElementById('message').textContent = 'RO Number not found.';
+                    alert("No data found for the given RO NUMBER.");
                 }
             })
             .catch(error => {
-                document.getElementById('message').textContent = `Error fetching data. ${error.message}`;
+                console.error("Fetch error:", error);
+                alert("Error fetching data. Please check the console for details.");
             });
         });
 
-        // Save data to Memento
         document.getElementById('saveButton').addEventListener('click', () => {
-            const roNumber = document.getElementById('roNumber').value.trim();
-            if (!roNumber) {
-                document.getElementById('message').textContent = 'Please enter an RO Number.';
+            const roNumber = document.getElementById('roNumberInput').value.trim();
+            const status = document.getElementById('statusField').value.trim();
+            const serialNumber = document.getElementById('serialNumberField').value.trim();
+
+            if (!roNumber || !status || !serialNumber) {
+                alert("Please fetch data first and ensure all fields are filled.");
                 return;
             }
-            fetch(`${baseUrl}libraries/${libraryId}/entries`, {
+
+            const endpoint = `${apiUrl}libraries/${libraryId}/entries`;
+            fetch(endpoint, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${apiKey}`,
+                    'Authorization': apiKey,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                     entry: {
                         "RO NUMBER": roNumber,
-                        "STATUS": "Accepted"
+                        "STATUS": status,
+                        "SERIAL NUMBER": serialNumber
                     }
                 })
             })
             .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Error: ${response.status}`);
+                if (response.ok) {
+                    document.getElementById('resultMessage').textContent = "Data saved successfully!";
+                } else {
+                    throw new Error(`HTTP status ${response.status}`);
                 }
-                return response.json();
-            })
-            .then(data => {
-                document.getElementById('message').textContent = 'Data saved successfully!';
             })
             .catch(error => {
-                document.getElementById('message').textContent = `Error saving data. ${error.message}`;
+                console.error("Save error:", error);
+                document.getElementById('resultMessage').textContent = "Error saving data. Please try again.";
             });
         });
     </script>
